@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Local fleet config (keep example committed)
+fleet.yml
+
+# Build artifacts
+lume-fleet
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go test artifacts
+*.test
+*.out
+coverage.out
+
+# IDE/editor
+.vscode/
+.idea/

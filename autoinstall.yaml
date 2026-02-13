@@ -1,0 +1,83 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+
+  identity:
+    hostname: lume-linux
+    username: lume
+    # password: lume (hashed below)
+    password: "$6$lumesalt$IXXoq/Km0oEEKIT5lZwRIMx8c48nOULXdmVhv.mJjfoOo8TXMLIWaR.KIiyDxeHT0Nz1mbmuGqy5Yqob.YmZz1"
+
+  ssh:
+    install-server: true
+    allow-pw: true
+
+  storage:
+    layout:
+      name: direct
+
+  packages:
+    - openssh-server
+    - git
+    - curl
+    - wget
+    - build-essential
+    - python3
+    - python3-pip
+    - docker.io
+    - nodejs
+    - npm
+    - jq
+    - unzip
+    - htop
+    - xfce4
+    - xfce4-goodies
+    - tigervnc-standalone-server
+    - tigervnc-common
+    - dbus-x11
+
+  user-data:
+    write_files:
+      - path: /etc/systemd/system/vncserver@.service
+        permissions: "0644"
+        owner: root:root
+        content: |
+          [Unit]
+          Description=TigerVNC server on display :1 for %i
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=%i
+          PAMName=login
+          PIDFile=/home/%i/.vnc/%H:1.pid
+          ExecStartPre=-/usr/bin/vncserver -kill :1 > /dev/null 2>&1
+          ExecStart=/usr/bin/vncserver :1 -geometry 1920x1080 -depth 24 -localhost no
+          ExecStop=/usr/bin/vncserver -kill :1
+
+          [Install]
+          WantedBy=multi-user.target
+      - path: /home/lume/.vnc/xstartup
+        permissions: "0755"
+        owner: lume:lume
+        content: |
+          #!/bin/sh
+          unset SESSION_MANAGER
+          unset DBUS_SESSION_BUS_ADDRESS
+          exec startxfce4
+    runcmd:
+      - systemctl enable docker
+      - usermod -aG docker lume
+      - install -d -m 700 -o lume -g lume /home/lume/.vnc
+      - "runuser -l lume -c \"printf 'lume' | vncpasswd -f > /home/lume/.vnc/passwd\""
+      - chown lume:lume /home/lume/.vnc/passwd
+      - chmod 600 /home/lume/.vnc/passwd
+      - systemctl daemon-reload
+      - systemctl enable vncserver@lume.service
+      - systemctl start vncserver@lume.service
+
+  late-commands:
+    - "curtin in-target -- systemctl enable ssh"

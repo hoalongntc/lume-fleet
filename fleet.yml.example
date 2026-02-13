@@ -1,0 +1,33 @@
+# lume-fleet configuration
+# Copy this file to fleet.yml and customize for your environment.
+
+defaults:
+  os: macos
+  cpu: 4
+  memory: 8GB
+  disk-size: 50GB
+  unattended: tahoe
+  vnc-port: 0
+  storage: default
+
+vms:
+  # Development VM with shared project directory
+  dev-main:
+    cpu: 8
+    memory: 16GB
+    vnc-port: 5901
+    shared-dir: ~/Projects
+    tags: [dev]
+
+  # CI runner (Linux, no concurrent limit)
+  ci-runner-1:
+    os: linux
+    cpu: 4
+    memory: 4GB
+    tags: [ci, ephemeral]
+
+  # Golden image template (won't auto-start with `up`)
+  golden-image:
+    disk-size: 100GB
+    tags: [template]
+    autostart: false
