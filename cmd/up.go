@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/hoalong/lume-fleet/fleet"
 	"github.com/hoalong/lume-fleet/lume"
@@ -12,6 +11,11 @@ import (
 )
 
 var upTag string
+var (
+	runVMViaCLI = func(name, sharedDir, mountISO string) error {
+		return lume.RunVMViaCLI(name, sharedDir, mountISO)
+	}
+)
 
 var upCmd = &cobra.Command{
 	Use:   "up [vm1 vm2 ...]",
@@ -34,10 +38,9 @@ var upCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lume.NewClient("")
-		actual, err := client.ListVMs()
+		actual, err := lume.ListVMsViaCLI()
 		if err != nil {
-			return fmt.Errorf("cannot reach Lume API at localhost:7777. Is 'lume serve' running?\n%w", err)
+			return fmt.Errorf("cannot list VMs via lume CLI: %w", err)
 		}
 
 		actions := fleet.PlanUp(resolved, actual)
@@ -56,7 +59,7 @@ var upCmd = &cobra.Command{
 					continue
 				}
 				fmt.Printf("[>] %s: starting...\n", a.VM.Name)
-				err := client.RunVM(a.VM.Name, buildRunRequest(a.VM))
+				err := runVMForAction(a.VM, fleet.ActionStart)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "[x] %s: start failed: %v\n", a.VM.Name, err)
 					failures++
@@ -77,21 +80,14 @@ var upCmd = &cobra.Command{
 
 				createReq := buildCreateRequest(a.VM)
 
-				if err := client.CreateVM(createReq); err != nil {
+				if err := lume.CreateVMViaCLI(createReq); err != nil {
 					fmt.Fprintf(os.Stderr, "[x] %s: create failed: %v\n", a.VM.Name, err)
 					failures++
 					continue
 				}
 
-				fmt.Printf("[>] %s: waiting for provisioning...\n", a.VM.Name)
-				if err := client.WaitForCreation(a.VM.Name, 30*time.Minute); err != nil {
-					fmt.Fprintf(os.Stderr, "[x] %s: provisioning failed: %v\n", a.VM.Name, err)
-					failures++
-					continue
-				}
-
 				fmt.Printf("[>] %s: starting...\n", a.VM.Name)
-				err := client.RunVM(a.VM.Name, buildRunRequest(a.VM))
+				err := runVMForAction(a.VM, fleet.ActionCreate)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "[x] %s: start failed: %v\n", a.VM.Name, err)
 					failures++
@@ -128,7 +124,10 @@ func buildCreateRequest(vm fleet.ResolvedVM) lume.CreateRequest {
 		VNCPort:    vm.VNCPort,
 	}
 	if strings.EqualFold(vm.OS, "macos") {
-		req.IPSW = "latest"
+		req.IPSW = vm.Image
+		if req.IPSW == "" {
+			req.IPSW = "latest"
+		}
 	}
 	return req
 }
@@ -138,4 +137,16 @@ func buildRunRequest(vm fleet.ResolvedVM) lume.RunRequest {
 		NoDisplay: true,
 		SharedDir: vm.SharedDir,
 	}
+}
+
+func shouldUseISOMountOnCreate(vm fleet.ResolvedVM, actionType fleet.ActionType) bool {
+	return actionType == fleet.ActionCreate && strings.EqualFold(vm.OS, "linux") && vm.Image != ""
+}
+
+func runVMForAction(vm fleet.ResolvedVM, actionType fleet.ActionType) error {
+	mountISO := ""
+	if shouldUseISOMountOnCreate(vm, actionType) {
+		mountISO = vm.Image
+	}
+	return runVMViaCLI(vm.Name, vm.SharedDir, mountISO)
 }

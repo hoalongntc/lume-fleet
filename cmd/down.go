@@ -32,10 +32,9 @@ var downCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lume.NewClient("")
-		actual, err := client.ListVMs()
+		actual, err := lume.ListVMsViaCLI()
 		if err != nil {
-			return fmt.Errorf("cannot reach Lume API at localhost:7777. Is 'lume serve' running?\n%w", err)
+			return fmt.Errorf("cannot list VMs via lume CLI: %w", err)
 		}
 
 		actions := fleet.PlanDown(resolved, actual)
@@ -47,7 +46,7 @@ var downCmd = &cobra.Command{
 		failures := 0
 		for _, a := range actions {
 			fmt.Printf("[>] %s: stopping...\n", a.VM.Name)
-			if err := client.StopVM(a.VM.Name); err != nil {
+			if err := lume.StopVMViaCLI(a.VM.Name); err != nil {
 				fmt.Fprintf(os.Stderr, "[x] %s: stop failed: %v\n", a.VM.Name, err)
 				failures++
 				continue

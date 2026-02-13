@@ -36,10 +36,9 @@ var statusCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lume.NewClient("")
-		actual, err := client.ListVMs()
+		actual, err := lume.ListVMsViaCLI()
 		if err != nil {
-			return fmt.Errorf("cannot reach Lume API at localhost:7777. Is 'lume serve' running?\n%w", err)
+			return fmt.Errorf("cannot list VMs via lume CLI: %w", err)
 		}
 
 		if statusJSON {

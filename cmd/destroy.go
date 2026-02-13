@@ -35,10 +35,9 @@ var destroyCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lume.NewClient("")
-		actual, err := client.ListVMs()
+		actual, err := lume.ListVMsViaCLI()
 		if err != nil {
-			return fmt.Errorf("cannot reach Lume API at localhost:7777. Is 'lume serve' running?\n%w", err)
+			return fmt.Errorf("cannot list VMs via lume CLI: %w", err)
 		}
 
 		actions := fleet.PlanDestroy(resolved, actual)
@@ -61,7 +60,7 @@ var destroyCmd = &cobra.Command{
 			// Stop running VMs before deleting
 			if a.Current != nil && a.Current.Status == "running" {
 				fmt.Printf("[>] %s: stopping before delete...\n", a.VM.Name)
-				if err := client.StopVM(a.VM.Name); err != nil {
+				if err := lume.StopVMViaCLI(a.VM.Name); err != nil {
 					fmt.Fprintf(os.Stderr, "[x] %s: stop failed: %v\n", a.VM.Name, err)
 					failures++
 					continue

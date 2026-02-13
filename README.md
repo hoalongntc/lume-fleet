@@ -2,17 +2,13 @@
 
 `lume-fleet` manages multiple [Lume](https://github.com/trycua/cua/tree/main/libs/lume) VMs from a single declarative `fleet.yml`.
 
+All VM operations are executed through the `lume` CLI (no direct HTTP API calls from `lume-fleet`).
+
 ## Prerequisites
 
 - Go 1.24+
 - `lume` installed and reachable in `PATH`
-- Lume API server running locally:
-
-```bash
-lume serve
-```
-
-`lume-fleet` talks to `http://localhost:7777`.
+- `lume serve` running locally (required by `lume` commands)
 
 ## Install
 
@@ -81,6 +77,7 @@ Supported fields:
 - `memory`: size string (e.g. `4GB`, `512MB`)
 - `disk-size`: size string (e.g. `50GB`)
 - `unattended`: macOS unattended preset/name
+- `image`: macOS IPSW path/`latest` or Linux ISO path
 - `vnc-port`: integer `0-65535`
 - `storage`: named storage location
 - `shared-dir`: host directory to share when running
@@ -89,10 +86,16 @@ Supported fields:
 
 ### `vnc-port` behavior
 
-`vnc-port` is sent only during VM **creation** (`POST /lume/vms`) and not during VM run/start (`POST /lume/vms/:name/run`).
+`vnc-port` is applied only during VM **creation** (`lume create --vnc-port ...`) and not during VM run/start.
 
 - Use `0` for auto-assigned VNC port.
 - Use a fixed port when you need deterministic unattended setup behavior.
+
+### `image` behavior
+
+For Linux VMs, `image` is mounted as ISO only on the start immediately after creation (`up` create flow). It is not mounted for later `up` runs on existing VMs.
+
+For macOS VMs, `image` is sent as `ipsw` during create. If omitted, `lume-fleet` uses `latest`.
 
 ## Example
 
@@ -103,6 +106,7 @@ defaults:
   memory: 8GB
   disk-size: 50GB
   unattended: tahoe
+  image: latest
   vnc-port: 0
 
 vms:
@@ -117,6 +121,7 @@ vms:
     os: linux
     cpu: 4
     memory: 4GB
+    image: ~/Downloads/ubuntu-25.10-desktop-arm64.iso
     tags: [ci, ephemeral]
 ```
 

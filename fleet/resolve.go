@@ -17,6 +17,7 @@ type ResolvedVM struct {
 	SharedDir  string
 	Unattended string
 	VNCPort    int
+	Image      string
 	Storage    string
 	Tags       []string
 	Autostart  bool
@@ -35,6 +36,7 @@ func (c *FleetConfig) Resolve() ([]ResolvedVM, error) {
 			DiskSize:  coalesce(spec.DiskSize, c.Defaults.DiskSize, "50GB"),
 			SharedDir: expandHome(spec.SharedDir),
 			VNCPort:   coalesceInt(spec.VNCPort, c.Defaults.VNCPort, 0),
+			Image:     expandHome(coalesce(spec.Image, c.Defaults.Image, "")),
 			Storage:   coalesce(spec.Storage, c.Defaults.Storage, ""),
 			Tags:      spec.Tags,
 			Autostart: true,

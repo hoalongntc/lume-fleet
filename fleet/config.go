@@ -22,6 +22,7 @@ type VMDefaults struct {
 	Memory     string `yaml:"memory"`
 	DiskSize   string `yaml:"disk-size"`
 	Unattended string `yaml:"unattended"`
+	Image      string `yaml:"image"`
 	VNCPort    int    `yaml:"vnc-port"`
 	Storage    string `yaml:"storage"`
 }
@@ -34,6 +35,7 @@ type VMSpec struct {
 	DiskSize   string   `yaml:"disk-size,omitempty"`
 	SharedDir  string   `yaml:"shared-dir,omitempty"`
 	Unattended string   `yaml:"unattended,omitempty"`
+	Image      string   `yaml:"image,omitempty"`
 	VNCPort    int      `yaml:"vnc-port,omitempty"`
 	Storage    string   `yaml:"storage,omitempty"`
 	Tags       []string `yaml:"tags,omitempty"`
